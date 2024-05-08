@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "ms-vscode.cmake-tools",
+        "sumneko.lua",
+        "qwtel.sqlite-viewer"
+    ]
+}
