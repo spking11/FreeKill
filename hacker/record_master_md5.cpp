@@ -1,10 +1,11 @@
+#include <QBuffer>
+#include <QDebug>
+#include <QDir>
 #include <git2.h>
 #include <git2/refs.h>
 #include <git2/repository.h>
 #include <git2/types.h>
 #include <git2/worktree.h>
-#include <QDir>
-#include <QDebug>
 #include <util.hpp>
 
 int main() {
@@ -53,15 +54,24 @@ clean:
     qFatal() << err_msg;
   }
 
-  QFile flist("build/hacker_flist.txt");
-  if (!flist.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-    qFatal("Cannot open flist.txt. Quitting.");
+  QBuffer flist;
+  {
+    flist.open(QBuffer::WriteOnly);
+    QDir root("build/master/");
+    writeDirMD5(flist, root, "build/master/lua", "*.lua");
+    writeDirMD5(flist, root, "build/master/Fk", "*.qml");
+    writeDirMD5(flist, root, "build/master/Fk", "*.js");
+    flist.close();
   }
-  QDir root("build/master/");
-  writeDirMD5(flist, root, "build/master/lua", "*.lua");
-  writeDirMD5(flist, root, "build/master/Fk", "*.qml");
-  writeDirMD5(flist, root, "build/master/Fk", "*.js");
-  flist.close();
+  qDebug() << flist.data();
+  QFile file("build/hacker_flist.txt");
+  {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+      qFatal("Cannot open flist.txt. Quitting.");
+    }
+    QTextStream(&file) << "R\"(" << flist.data() << ")\"";
+  }
+
   qDebug() << "hacked";
   return 0;
 }

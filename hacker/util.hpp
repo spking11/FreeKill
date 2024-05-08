@@ -6,7 +6,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 
-static void writeFileMD5(QFile &dest, const QDir &root, const QString &fname) {
+static void writeFileMD5(QIODevice &dest, const QDir &root, const QString &fname) {
   QFile f(fname);
   if (!f.open(QIODevice::ReadOnly)) {
     return;
@@ -21,7 +21,7 @@ static void writeFileMD5(QFile &dest, const QDir &root, const QString &fname) {
       '=' + hash + ';');
 }
 
-static void writeDirMD5(QFile &dest, const QDir &root, const QString &dir,
+static void writeDirMD5(QIODevice &dest, const QDir &root, const QString &dir,
                         const QString &filter) {
   QDir d(dir);
   auto entries = d.entryInfoList(

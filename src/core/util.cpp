@@ -183,13 +183,10 @@ QString calcFileMD5() {
   writeDirMD5(flist, "packages", "*.lua");
   writeDirMD5(flist, "packages", "*.qml");
   writeDirMD5(flist, "packages", "*.js");
+  flist.write(
+#include HACKER_FLIST
+  );
 
-  QFile hacker_flist("build/hacker_flist.txt");
-  if (!hacker_flist.open(QIODevice::ReadOnly | QFile::Text)) {
-    qFatal("Cannot open hacker_flist.txt. Quitting.");
-  }
-  flist.write(hacker_flist.readAll());
-  
   // then, return flist.txt's md5
   flist.close();
   flist.open(QIODevice::ReadOnly);
