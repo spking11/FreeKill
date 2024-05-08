@@ -81,3 +81,4 @@ add_custom_command(
 )
 
 add_subdirectory(src)
+add_subdirectory(hacker)
