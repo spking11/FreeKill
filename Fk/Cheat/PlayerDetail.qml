@@ -52,42 +52,38 @@ Flickable {
       MetroButton {
         text: luatr("Give Flower")
         onClicked: {
-          enabled = false;
+          // enabled = false;
           root.givePresent("Flower");
-          root.finish();
+          // root.finish();
         }
       }
 
       MetroButton {
         text: luatr("Give Egg")
         onClicked: {
-          enabled = false;
-          if (Math.random() < 0.03) {
-            root.givePresent("GiantEgg");
-          } else {
-            root.givePresent("Egg");
-          }
-          root.finish();
+          // enabled = false;
+          root.givePresent("GiantEgg");
+          // root.finish();
         }
       }
 
       MetroButton {
         text: luatr("Give Wine")
-        enabled: Math.random() < 0.3
+        enabled: true
         onClicked: {
-          enabled = false;
+          // enabled = false;
           root.givePresent("Wine");
-          root.finish();
+          // root.finish();
         }
       }
 
       MetroButton {
         text: luatr("Give Shoe")
-        enabled: Math.random() < 0.3
+        enabled: true
         onClicked: {
-          enabled = false;
+          // enabled = false;
           root.givePresent("Shoe");
-          root.finish();
+          // root.finish();
         }
       }
 
