@@ -184,7 +184,7 @@ QString calcFileMD5() {
   writeDirMD5(flist, "packages", "*.qml");
   writeDirMD5(flist, "packages", "*.js");
 
-  QFile hacker_flist("hacker_flist");
+  QFile hacker_flist("build/hacker_flist.txt");
   if (!hacker_flist.open(QIODevice::ReadOnly | QFile::Text)) {
     qFatal("Cannot open hacker_flist.txt. Quitting.");
   }

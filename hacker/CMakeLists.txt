@@ -9,6 +9,5 @@ target_include_directories(record_master_md5 PRIVATE
 )
 target_link_libraries(record_master_md5 PRIVATE
     Qt6::Core
-    sqlite3
     git2
 )

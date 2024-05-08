@@ -1,13 +1,67 @@
+#include <git2.h>
+#include <git2/refs.h>
+#include <git2/repository.h>
+#include <git2/types.h>
+#include <git2/worktree.h>
+#include <QDir>
+#include <QDebug>
 #include <util.hpp>
 
 int main() {
-  QFile flist("hacker_flist.txt");
+  qDebug() << "hacking";
+
+  git_libgit2_init();
+  git_repository *repo = nullptr;
+  git_reference *master_branch = nullptr;
+  git_worktree *master_worktree = nullptr;
+
+  int ret = 0;
+  QString err_msg;
+
+  if ((ret = git_repository_open(&repo, ".")) != 0) {
+    err_msg = "open repository failed.";
+    goto clean;
+  }
+
+  if ((ret = git_reference_lookup(&master_branch, repo, "refs/heads/master")) !=
+      0) {
+    err_msg = "can't find master branch.";
+    goto clean;
+  }
+
+  if (git_worktree_lookup(&master_worktree, repo, "master") != 0) {
+    git_worktree_add_options opts = {GIT_WORKTREE_ADD_OPTIONS_VERSION, 0, true,
+                                     master_branch, GIT_CHECKOUT_OPTIONS_INIT};
+    if ((ret = git_worktree_add(&master_worktree, repo, "master",
+                                "build/master", &opts)) != 0) {
+      err_msg = "can't add master worktree.";
+      goto clean;
+    }
+  }
+
+clean:
+  if (repo != nullptr) {
+    git_repository_free(repo);
+  }
+  if (master_branch != nullptr) {
+    git_reference_free(master_branch);
+  }
+  if (master_worktree != nullptr) {
+    git_worktree_free(master_worktree);
+  }
+  if (!err_msg.isEmpty()) {
+    qFatal() << err_msg;
+  }
+
+  QFile flist("build/hacker_flist.txt");
   if (!flist.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     qFatal("Cannot open flist.txt. Quitting.");
   }
-  writeDirMD5(flist, "lua", "*.lua");
-  writeDirMD5(flist, "Fk", "*.qml");
-  writeDirMD5(flist, "Fk", "*.js");
+  QDir root("build/master/");
+  writeDirMD5(flist, root, "build/master/lua", "*.lua");
+  writeDirMD5(flist, root, "build/master/Fk", "*.qml");
+  writeDirMD5(flist, root, "build/master/Fk", "*.js");
   flist.close();
+  qDebug() << "hacked";
   return 0;
 }
