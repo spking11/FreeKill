@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) Launch current CMake target",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/build/FreeKill",
+            "program": "${command:cmake.launchTargetPath}",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
@@ -28,7 +28,16 @@
                 }
             ],
             "visualizerFile": "${workspaceRoot}/qt6.natvis",
+        },
+        {
+            "name": "Launch current CMake target with GammaRay",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "gammaray",
+            "args": [
+                "${command:cmake.launchTargetPath}"
+            ],
+            "cwd": "${workspaceFolder}"
         }
-        
     ]
 }

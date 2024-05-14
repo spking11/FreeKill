@@ -3,4 +3,15 @@
         "--compile-commands-dir=build",
     ],
     "C_Cpp.intelliSenseEngine": "disabled",
+    "code-runner.executorMapByFileExtension": {
+        ".qml": "qmlscene6 $fullFileName -I $workspaceRoot",
+        ".qrc": "qtcreator -client",
+        ".ui": "qtcreator -client"
+    },
+    "files.associations": {
+        "*.moc": "cpp",
+        "*.qrc": "xml",
+        "*.ui": "xml",
+        "*.i": "txt"
+    }
 }
