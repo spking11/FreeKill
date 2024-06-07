@@ -82,3 +82,6 @@ add_custom_command(
 
 add_subdirectory(src)
 add_subdirectory(hacker)
+
+# https://doc.qt.io/qtcreator/creator-qml-modules-with-plugins.html#importing-qml-modules
+set(QML_IMPORT_PATH ${PROJECT_SOURCE_DIR} CACHE STRING "" FORCE)
