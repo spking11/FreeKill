@@ -1,27 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "qmlbackend.h"
-#include <lua.h>
-#include <qjsondocument.h>
-#include <qvariant.h>
+#include "ui/qmlbackend.h"
 
 #ifndef FK_SERVER_ONLY
-#include <qaudiooutput.h>
-#include <qmediaplayer.h>
-#include <qrandom.h>
+#include <QAudioOutput>
 #include <QNetworkDatagram>
 #include <QDnsLookup>
 
 #include <QClipboard>
 #include <QMediaPlayer>
-#include "mod.h"
+#include <QMessageBox>
+// #include "mod.h"
 #endif
 
 #include <cstdlib>
-#include "server.h"
-#include "client.h"
-#include "util.h"
-#include "replayer.h"
+#include "server/server.h"
+#include "client/client.h"
+#include "core/util.h"
+#include "client/replayer.h"
 
 QmlBackend *Backend = nullptr;
 
@@ -35,6 +31,7 @@ QmlBackend::QmlBackend(QObject *parent) : QObject(parent) {
   udpSocket->bind(0);
   connect(udpSocket, &QUdpSocket::readyRead,
           this, &QmlBackend::readPendingDatagrams);
+  connect(this, &QmlBackend::dialog, this, &QmlBackend::showDialog);
 #endif
 }
 
@@ -464,7 +461,7 @@ void QmlBackend::installAESKey() {
 }
 
 void QmlBackend::createModBackend() {
-  engine->rootContext()->setContextProperty("ModBackend", new ModMaker);
+  //engine->rootContext()->setContextProperty("ModBackend", new ModMaker);
 }
 
 
@@ -547,6 +544,42 @@ void QmlBackend::readPendingDatagrams() {
       }
     }
   }
+}
+
+void QmlBackend::showDialog(const QString &type, const QString &text, const QString &orig) {
+  //static const QString title = tr("FreeKill") + " v" + FK_VERSION;
+  QMessageBox *box = nullptr;
+  if (type == "critical") {
+    box = new QMessageBox(QMessageBox::Critical, text, text, QMessageBox::Ok);
+    connect(box, &QMessageBox::buttonClicked, box, &QObject::deleteLater);
+  } else if (type == "info") {
+    box = new QMessageBox(QMessageBox::Information, text, text, QMessageBox::Ok);
+    connect(box, &QMessageBox::buttonClicked, box, &QObject::deleteLater);
+  } else if (type == "warning") {
+    box = new QMessageBox(QMessageBox::Warning, text, text, QMessageBox::Ok);
+    connect(box, &QMessageBox::buttonClicked, box, &QObject::deleteLater);
+  }
+
+  if (box) {
+    if (!orig.isEmpty()) {
+      auto bytes = orig.toLocal8Bit().prepend("help: ");
+      if (tr(bytes) != bytes) box->setInformativeText(tr(bytes));
+    }
+    box->setWindowModality(Qt::NonModal);
+    box->show();
+  }
+}
+
+void QmlBackend::askFixResource() {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_LINUX)
+  auto box = new QMessageBox(QMessageBox::Question, tr("fix resource"),
+      tr("help: fix resource"), QMessageBox::Ok | QMessageBox::Cancel);
+  connect(box, &QMessageBox::accepted, box, []() {
+      QFile::remove("fk_ver"); qApp->exit(); });
+  connect(box, &QMessageBox::finished, box, &QObject::deleteLater);
+  box->setWindowModality(Qt::NonModal);
+  box->show();
+#endif
 }
 
 void QmlBackend::removeRecord(const QString &fname) {

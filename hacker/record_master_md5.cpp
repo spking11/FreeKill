@@ -55,19 +55,29 @@ clean:
   }
 
   QBuffer flist;
-  {
-    flist.open(QBuffer::WriteOnly);
-    QDir root("build/master/");
-    writeDirMD5(flist, root, "build/master/lua", "*.lua");
-    writeDirMD5(flist, root, "build/master/Fk", "*.qml");
-    writeDirMD5(flist, root, "build/master/Fk", "*.js");
+  flist.open(QBuffer::WriteOnly);
+  QFile fk_ver("fk_ver");
+  QDir root("build/master/");
+  if (fk_ver.open(QIODevice::ReadOnly)) {
+    fk_ver.readLine();
+    QStringList allNames;
+    while (true) {
+      QByteArray bytes = fk_ver.readLine().simplified();
+      if (bytes.isNull())
+        break;
+      allNames << QString::fromLocal8Bit(bytes);
+    }
+    allNames.sort();
+    foreach (auto s, allNames) {
+      writeFileMD5(flist, root, s);
+    }
     flist.close();
   }
   qDebug() << flist.data();
   QFile file("build/hacker_flist.txt");
   {
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-      qFatal("Cannot open flist.txt. Quitting.");
+      qFatal("Cannot open hacker_flist.txt. Quitting.");
     }
     QTextStream(&file) << "R\"(" << flist.data() << ")\"";
   }

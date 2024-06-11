@@ -64,6 +64,10 @@ public:
   Q_INVOKABLE void detectServer();
   Q_INVOKABLE void getServerInfo(const QString &addr);
 
+  Q_INVOKABLE void showDialog(const QString &type, const QString &text,
+      const QString &orig = QString());
+  Q_INVOKABLE void askFixResource();
+
   qreal volume() const { return m_volume; }
   void setVolume(qreal v) { m_volume = v; }
 
@@ -77,6 +81,7 @@ public:
 
 signals:
   void notifyUI(const QString &command, const QVariant &data);
+  void dialog(const QString &type, const QString &text, const QString &orig = QString());
   void volumeChanged(qreal);
   void replayerToggle();
   void replayerSpeedUp();

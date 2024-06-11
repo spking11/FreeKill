@@ -314,6 +314,10 @@ function resortHandcards() {
     ["treasure"]: Card.SubtypeTreasure,
   }
 
+  const hand = dashboard.handcardArea.cards.map(c => {
+    return c.cid;
+  })
+
   dashboard.handcardArea.cards.sort((prev, next) => {
     if (prev.footnote === next.footnote) {
       if (prev.type === next.type) {
@@ -340,6 +344,34 @@ function resortHandcards() {
       return prev.footnote > next.footnote ? 1 : -1;
     }
   });
+
+  let i = 0;
+  let resort = true;
+  dashboard.handcardArea.cards.forEach(c => {
+    if (hand[i] !== c.cid) {
+      resort = false;
+      return;
+    }
+    i++;
+  })
+
+  if (resort) {
+    dashboard.handcardArea.cards.sort((prev, next) => {
+      if (prev.footnote === next.footnote) {
+        if (prev.number === next.number) { // 按点数排
+          if (prev.suit === next.suit) {
+            return prev.cid - next.cid;
+          } else {
+            return prev.suit - next.suit;
+          }
+        } else {
+          return prev.number - next.number;
+        }
+      } else {
+        return prev.footnote > next.footnote ? 1 : -1;
+      }
+    });
+  }
 
   dashboard.handcardArea.updateCardPosition(true);
 }
@@ -488,15 +520,29 @@ function doIndicate(from, tos) {
   line.running = true;
 }
 
+function getPlayerStr(playerid) {
+  const photo = getPhoto(playerid);
+  if (photo.general === "anjiang" && (photo.deputyGeneral === "anjiang" || !p.deputyGeneral)) {
+    return luatr("seat#" + photo.seatNumber);
+  }
+
+  let ret = photo.general;
+  ret = luatr(ret);
+  if (photo.deputyGeneral && photo.deputyGeneral !== "") {
+    ret = ret + "/" + luatr(photo.deputyGeneral);
+  }
+  return ret;
+}
+
 function processPrompt(prompt) {
   const data = prompt.split(":");
   let raw = luatr(data[0]);
   const src = parseInt(data[1]);
   const dest = parseInt(data[2]);
   if (raw.match("%src"))
-    raw = raw.replace(/%src/g, luatr(getPhoto(src).general));
+    raw = raw.replace(/%src/g, getPlayerStr(src));
   if (raw.match("%dest"))
-    raw = raw.replace(/%dest/g, luatr(getPhoto(dest).general));
+    raw = raw.replace(/%dest/g, getPlayerStr(dest));
   if (raw.match("%arg2"))
     raw = raw.replace(/%arg2/g, luatr(data[4]));
   if (raw.match("%arg"))
@@ -672,6 +718,49 @@ function updateSelectedTargets(playerid, selected) {
   }
 
   if (candidate) {
+    if (!selected) {
+      const remain_targets = [];
+      selected_targets.forEach(id => {
+        const photo = getPhoto(id);
+        const ret = lcall("CanUseCardToTarget", card, id, remain_targets,
+                           JSON.stringify(roomScene.extra_data));
+        let bool = ret;
+        if (roomScene.extra_data instanceof Object) {
+          const must = roomScene.extra_data.must_targets;
+          const included = roomScene.extra_data.include_targets;
+          const exclusive = roomScene.extra_data.exclusive_targets;
+          if (exclusive instanceof Array) {
+            if (exclusive.indexOf(id) === -1) bool = false;
+          }
+          if (must instanceof Array) {
+            if (must.filter((val) => {
+              return remain_targets.indexOf(val) === -1;
+            }).length !== 0 && must.indexOf(id) === -1) bool = false;
+          }
+          if (included instanceof Array) {
+            if (included.filter((val) => {
+              return remain_targets.indexOf(val) !== -1;
+            }).length === 0 && included.indexOf(id) === -1) bool = false;
+          }
+        }
+        if (bool) {
+          remain_targets.push(id);
+        } else {
+          photo.selected = false;
+        }
+      })
+      selected_targets = remain_targets;
+    }
+
+    roomScene.resetPrompt(); // update prompt due to selected_targets
+    const prompt = lcall("ActiveSkillPrompt",
+      dashboard.pending_skill !== "" ? dashboard.pending_skill: lcall("GetCardSkill", card),
+      dashboard.pending_skill !== "" ? dashboard.pendings : [card],
+      selected_targets);
+    if (prompt !== "") {
+      roomScene.setPrompt(Util.processPrompt(prompt));
+    }
+
     all_photos.forEach(photo => {
       if (photo.selected) return;
       const id = photo.playerid;
@@ -959,8 +1048,31 @@ callbacks["AskForSkillInvoke"] = (data) => {
   roomScene.cancelButton.enabled = true;
 }
 
+callbacks["AskForArrangeCards"] = (data) => {
+  roomScene.state = "replying";
+  roomScene.popupBox.sourceComponent =
+    Qt.createComponent("../RoomElement/ArrangeCardsBox.qml");
+  const box = roomScene.popupBox.item;
+  const cards = data.cards;
+  box.cards = cards.reduce((newArray, elem) => {
+    return newArray.concat(elem.map(cid => lcall("GetCardData", cid)));
+  }, []);
+  box.org_cards = cards;
+  box.prompt = data.prompt;
+  box.size = data.size;
+  box.areaCapacities = data.capacities;
+  box.areaLimits = data.limits;
+  box.free_arrange = data.is_free;
+  box.areaNames = data.names;
+  box.pattern = data.pattern;
+  box.poxi_type = data.poxi_type;
+  box.cancelable = data.cancelable;
+
+  box.initializeCards();
+}
+
 callbacks["AskForGuanxing"] = (data) => {
-  const cards = [];
+  const cards = data.cards;
   const min_top_cards = data.min_top_cards;
   const max_top_cards = data.max_top_cards;
   const min_bottom_cards = data.min_bottom_cards;
@@ -971,9 +1083,9 @@ callbacks["AskForGuanxing"] = (data) => {
   roomScene.state = "replying";
   roomScene.popupBox.sourceComponent =
     Qt.createComponent("../RoomElement/GuanxingBox.qml");
-  data.cards.forEach(id => cards.push(lcall("GetCardData", id)));
   const box = roomScene.popupBox.item;
   box.prompt = prompt;
+  box.free_arrange = data.is_free;
   if (max_top_cards === 0) {
     box.areaCapacities = [max_bottom_cards];
     box.areaLimits = [min_bottom_cards];
@@ -989,8 +1101,11 @@ callbacks["AskForGuanxing"] = (data) => {
       box.areaNames = [luatr(top_area_name), luatr(bottom_area_name)];
     }
   }
-  box.cards = cards;
-  box.arrangeCards();
+  box.org_cards = cards;
+  box.cards = cards.reduce((newArray, elem) => {
+    return newArray.concat(elem.map(cid => lcall("GetCardData", cid)));
+  }, []);
+  box.initializeCards();
   box.accepted.connect(() => {
     replyToServer(JSON.stringify(box.getResult()));
   });
@@ -1006,6 +1121,7 @@ callbacks["AskForExchange"] = (data) => {
     Qt.createComponent("../RoomElement/GuanxingBox.qml");
   let for_i = 0;
   const box = roomScene.popupBox.item;
+  box.org_cards = data.piles;
   data.piles.forEach(ids => {
     if (ids.length > 0) {
       ids.forEach(id => cards.push(lcall("GetCardData", id)));
@@ -1015,11 +1131,11 @@ callbacks["AskForExchange"] = (data) => {
       for_i ++;
     }
   });
+  box.cards = cards;
   box.areaCapacities = capacities
   box.areaLimits = limits
   box.areaNames = cards_name
-  box.cards = cards;
-  box.arrangeCards();
+  box.initializeCards();
   box.accepted.connect(() => {
     replyToServer(JSON.stringify(box.getResult()));
   });
